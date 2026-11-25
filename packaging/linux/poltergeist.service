@@ -1,0 +1,13 @@
+[Unit]
+Description=Poltergeist keep-awake and cursor automator (offline)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/sbin/modprobe uinput
+ExecStart=/usr/local/bin/poltergeist run
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
