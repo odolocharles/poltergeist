@@ -1,0 +1,15 @@
+[package]
+name = "poltergeist-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "poltergeist-app"
+path = "src/main.rs"
+
+[dependencies]
+poltergeist-core.workspace = true
+poltergeist-backends.workspace = true
+eframe = "0.33.3"

@@ -1,0 +1,2 @@
+# Lets the logged-in desktop user create virtual input devices (no root needed).
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

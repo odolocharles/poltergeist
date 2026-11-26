@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Poltergeist
+GenericName=Keep-awake and automation
+Comment=Keep the machine awake, move the cursor and auto-click. Fully offline.
+Exec=@EXEC@
+Icon=poltergeist
+Terminal=false
+Categories=Utility;
+Keywords=awake;caffeine;mouse;cursor;click;automation;
+StartupWMClass=poltergeist

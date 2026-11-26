@@ -1,10 +1,18 @@
 use clap::{Parser, Subcommand};
-use poltergeist_backends::{dry_run::{DryRunInput, DryRunPower}, NativeInput, NativePower};
-use poltergeist_core::{Config, Engine, Mode, Paths};
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use poltergeist_backends::{
+    dry_run::{DryRunInput, DryRunPower},
+    NativeInput, NativePower,
+};
+use poltergeist_core::{
+    state::new_state, Config, Engine, Error, InputBackend, Mode, Paths, PowerBackend, Result,
+};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 #[derive(Parser)]
-#[command(name = "poltergeist", version, about = "Keep-awake and cursor automator. Fully offline.")]
+#[command(name = "poltergeist", version, about = "Keep-awake, cursor and click automator. Fully offline.")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -14,18 +22,21 @@ struct Cli {
 enum Cmd {
     /// Run the engine until Ctrl+C / SIGTERM (this is what boot services run).
     Run {
-        /// Print actions instead of performing them (no permissions needed).
+        /// Simulate: print actions instead of performing them (no permissions needed).
         #[arg(long)]
         dry_run: bool,
         /// Override mode: keep-awake, cursor or both.
         #[arg(long)]
         mode: Option<String>,
-        /// Override minimum seconds between moves.
+        /// Auto-click at this spot, as percentages of the screen, e.g. --click-at 50,50
         #[arg(long)]
-        min: Option<f64>,
-        /// Override maximum seconds between moves.
+        click_at: Option<String>,
+        /// Seconds between auto-clicks (default from config).
         #[arg(long)]
-        max: Option<f64>,
+        click_every: Option<f64>,
+        /// Stop clicking after this many clicks.
+        #[arg(long)]
+        max_clicks: Option<u32>,
     },
     /// Print the active config and where it lives.
     Config,
@@ -40,7 +51,15 @@ fn main() {
     }
 }
 
-fn real_main() -> poltergeist_core::Result<()> {
+fn parse_spot(s: &str) -> Result<(f32, f32)> {
+    let bad = || Error::Backend(format!("--click-at expects 'X,Y' percentages like 50,50 (got '{s}')"));
+    let (a, b) = s.split_once(',').ok_or_else(bad)?;
+    let x: f32 = a.trim().parse().map_err(|_| bad())?;
+    let y: f32 = b.trim().parse().map_err(|_| bad())?;
+    Ok(((x / 100.0).clamp(0.0, 1.0), (y / 100.0).clamp(0.0, 1.0)))
+}
+
+fn real_main() -> Result<()> {
     match Cli::parse().cmd {
         Cmd::Config => {
             let cfg = Config::load_or_create()?;
@@ -54,7 +73,7 @@ fn real_main() -> poltergeist_core::Result<()> {
             println!("screenshots: {}", p.screenshots.display());
             println!("recordings:  {}", p.recordings.display());
         }
-        Cmd::Run { dry_run, mode, min, max } => {
+        Cmd::Run { dry_run, mode, click_at, click_every, max_clicks } => {
             let mut cfg = Config::load_or_create()?;
             if let Some(m) = mode {
                 cfg.mode = match m.as_str() {
@@ -62,27 +81,40 @@ fn real_main() -> poltergeist_core::Result<()> {
                     "cursor" => Mode::Cursor,
                     "both" => Mode::Both,
                     other => {
-                        return Err(poltergeist_core::Error::Backend(format!(
+                        return Err(Error::Backend(format!(
                             "unknown mode '{other}' (use keep-awake, cursor or both)"
                         )))
                     }
                 };
             }
-            if let Some(v) = min { cfg.min_interval_s = v; }
-            if let Some(v) = max { cfg.max_interval_s = v.max(cfg.min_interval_s); }
+            if let Some(spot) = click_at {
+                let (x, y) = parse_spot(&spot)?;
+                cfg.click.enabled = true;
+                cfg.click.x = x;
+                cfg.click.y = y;
+            }
+            if let Some(s) = click_every {
+                cfg.click.min_interval_s = s;
+                cfg.click.max_interval_s = s;
+            }
+            if let Some(n) = max_clicks {
+                cfg.click.max_clicks = n;
+            }
+            cfg.sanitize();
 
             let stop = Arc::new(AtomicBool::new(false));
             let s = stop.clone();
             ctrlc::set_handler(move || s.store(true, Ordering::Relaxed))
-                .map_err(|e| poltergeist_core::Error::Backend(e.to_string()))?;
+                .map_err(|e| Error::Backend(e.to_string()))?;
 
-            eprintln!("poltergeist: running (mode {:?}). Ctrl+C to stop.", cfg.mode);
-            if dry_run {
-                Engine::new(cfg, DryRunInput, DryRunPower, stop).run()?;
+            let (input, power): (Box<dyn InputBackend + Send>, Box<dyn PowerBackend + Send>) = if dry_run {
+                (Box::new(DryRunInput::default()), Box::new(DryRunPower::default()))
             } else {
-                let input = NativeInput::new()?;
-                Engine::new(cfg, input, NativePower::default(), stop).run()?;
-            }
+                (Box::new(NativeInput::new()?), Box::new(NativePower::default()))
+            };
+
+            eprintln!("poltergeist: running (mode {:?}, click {}). Ctrl+C to stop.", cfg.mode, if cfg.click.enabled { "on" } else { "off" });
+            Engine::new(cfg.shared(), input, power, stop, new_state()).verbose(true).run()?;
         }
     }
     Ok(())

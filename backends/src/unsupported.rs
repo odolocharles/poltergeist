@@ -1,10 +1,11 @@
 use poltergeist_core::{Button, Error, InputBackend, PowerBackend, Result};
 
 fn nope<T>() -> Result<T> {
-    Err(Error::Backend("this platform's backend is not implemented yet (use --dry-run)".into()))
+    Err(Error::Backend("this platform's backend is not implemented yet (use simulation)".into()))
 }
 
 pub struct UnsupportedInput;
+#[derive(Default)]
 pub struct UnsupportedPower;
 
 impl UnsupportedInput {
@@ -12,15 +13,11 @@ impl UnsupportedInput {
         nope()
     }
 }
-impl Default for UnsupportedPower {
-    fn default() -> Self {
-        Self
-    }
-}
 
 impl InputBackend for UnsupportedInput {
-    fn move_relative(&mut self, _: i32, _: i32) -> Result<()> { nope() }
-    fn click(&mut self, _: Button) -> Result<()> { nope() }
+    fn move_to(&mut self, _: f32, _: f32) -> Result<()> { nope() }
+    fn press(&mut self, _: Button) -> Result<()> { nope() }
+    fn release(&mut self, _: Button) -> Result<()> { nope() }
     fn tap_idle_key(&mut self) -> Result<()> { nope() }
 }
 
