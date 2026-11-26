@@ -1,6 +1,13 @@
 use crate::Result;
 use directories::{ProjectDirs, UserDirs};
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, sync::OnceLock};
+
+static CONFIG_DIR_OVERRIDE: OnceLock<PathBuf> = OnceLock::new();
+
+/// Lets a platform (Android) point the config at its app-private folder. Call once at startup.
+pub fn set_config_dir(dir: PathBuf) {
+    let _ = CONFIG_DIR_OVERRIDE.set(dir);
+}
 
 pub struct Paths {
     pub root: PathBuf,
@@ -9,6 +16,9 @@ pub struct Paths {
 }
 
 pub fn config_dir() -> PathBuf {
+    if let Some(d) = CONFIG_DIR_OVERRIDE.get() {
+        return d.clone();
+    }
     ProjectDirs::from("", "", "Poltergeist")
         .map(|d| d.config_dir().to_path_buf())
         .unwrap_or_else(|| PathBuf::from(".poltergeist"))

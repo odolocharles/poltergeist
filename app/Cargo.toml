@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+build = "build.rs"
+
+[lib]
+name = "poltergeist_app"
+crate-type = ["lib", "cdylib"]
 
 [[bin]]
 name = "poltergeist-app"
@@ -12,4 +17,36 @@ path = "src/main.rs"
 [dependencies]
 poltergeist-core.workspace = true
 poltergeist-backends.workspace = true
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
 eframe = "0.33.3"
+
+[target.'cfg(target_os = "android")'.dependencies]
+eframe = { version = "0.33.3", default-features = false, features = ["android-native-activity", "glow", "default_fonts"] }
+android-activity = { version = "0.6", features = ["native-activity"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+# Android packaging (built with `cargo apk2`, see README)
+[package.metadata.android]
+package = "org.sorabbyngo.poltergeist"
+apk_name = "poltergeist"
+build_targets = ["aarch64-linux-android"]
+resources = "android/res"
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 34
+
+[package.metadata.android.application]
+label = "Poltergeist"
+icon = "@mipmap/ic_launcher"
+
+[[package.metadata.android.application.activity]]
+config_changes = "orientation|keyboardHidden|screenSize"
+launch_mode = "singleTop"
+
+[[package.metadata.android.application.activity.intent_filter]]
+actions = ["android.intent.action.MAIN"]
+categories = ["android.intent.category.LAUNCHER"]

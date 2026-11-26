@@ -1,28 +1,99 @@
 name: build
+
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  linux:
+    name: Linux (GUI + CLI)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --workspace
+      - run: cargo test -p poltergeist-core
+      - run: cargo build --release -p poltergeist-app -p poltergeist-cli
+      - name: Package
+        run: |
+          d=poltergeist-linux-x86_64
+          mkdir -p "dist/$d"
+          cp target/release/poltergeist target/release/poltergeist-app "dist/$d/"
+          cp -r packaging assets README.md "dist/$d/"
+          tar czf "$d.tar.gz" -C dist "$d"
       - uses: actions/upload-artifact@v4
         with:
-          name: poltergeist-${{ matrix.os }}
-          path: |
-            target/release/poltergeist
-            target/release/poltergeist-app
-            target/release/poltergeist-app.exe
-            target/release/poltergeist.exe
-          if-no-files-found: ignore
+          name: poltergeist-linux-x86_64
+          path: poltergeist-linux-x86_64.tar.gz
+
+  windows:
+    name: Windows (GUI + CLI)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p poltergeist-core
+      - run: cargo build --release -p poltergeist-app -p poltergeist-cli
+      - name: Package
+        shell: pwsh
+        run: |
+          $d = "poltergeist-windows-x64"
+          New-Item -ItemType Directory -Path "dist/$d" | Out-Null
+          Copy-Item target/release/poltergeist-app.exe, target/release/poltergeist.exe "dist/$d/"
+          Copy-Item README.md "dist/$d/"
+          Compress-Archive -Path "dist/$d" -DestinationPath "$d.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: poltergeist-windows-x64
+          path: poltergeist-windows-x64.zip
+
+  android:
+    name: Android (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+      - name: Point the build at the runner's Android NDK
+        run: |
+          echo "ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}" >> "$GITHUB_ENV"
+      - run: cargo install cargo-apk2 --locked
+      - name: Create a signing key for this build
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/poltergeist.keystore" \
+            -storepass android -keypass android -alias poltergeist \
+            -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Poltergeist"
+      - name: Build APK
+        env:
+          CARGO_APK_RELEASE_KEYSTORE: ${{ runner.temp }}/poltergeist.keystore
+          CARGO_APK_RELEASE_KEYSTORE_PASSWORD: android
+        run: cargo apk2 build --release -p poltergeist-app --lib --target aarch64-linux-android
+      - name: Locate APK
+        run: find target -name "*.apk" -print
+      - uses: actions/upload-artifact@v4
+        with:
+          name: poltergeist-android
+          path: target/release/apk/poltergeist.apk
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

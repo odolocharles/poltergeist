@@ -5,10 +5,14 @@ pub mod dry_run;
 
 #[cfg(target_os = "linux")]
 pub mod linux;
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+pub mod windows;
+#[cfg(not(any(target_os = "linux", windows)))]
 pub mod unsupported;
 
 #[cfg(target_os = "linux")]
 pub use linux::{SystemdInhibit as NativePower, UinputInput as NativeInput};
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+pub use windows::{WindowsInput as NativeInput, WindowsPower as NativePower};
+#[cfg(not(any(target_os = "linux", windows)))]
 pub use unsupported::{UnsupportedInput as NativeInput, UnsupportedPower as NativePower};

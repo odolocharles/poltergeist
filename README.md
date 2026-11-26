@@ -2,7 +2,7 @@
 
 > A tiny, **fully offline**, cross-platform ghost that keeps your machine awake and moves the cursor on its own, configured exactly how you want. Written in Rust.
 
-**Status:** early development (v0.2: desktop app + Linux backend) · **Visibility:** private
+**Status:** early development (v0.3: Linux, Windows and Android builds) · **Visibility:** private
 
 ## What it does
 
@@ -66,6 +66,30 @@ One-time permission setup (so no root is needed):
 ./packaging/linux/setup-uinput.sh
 ```
 
+## Downloads and builds
+
+Every push builds all three apps on GitHub Actions (Actions tab, then the run, then Artifacts). Pushing a version tag publishes them as a release:
+
+```bash
+git tag v0.3.0 && git push --tags
+```
+
+| App | File | Install |
+|---|---|---|
+| Linux GUI + CLI | `poltergeist-linux-x86_64.tar.gz` | extract, run `packaging/linux/install-app.sh` (builds from source) or use the binaries directly |
+| Windows GUI + CLI | `poltergeist-windows-x64.zip` | unzip, run `poltergeist-app.exe` |
+| Android | `poltergeist.apk` | allow "install unknown apps" once, then open the file |
+
+**Windows:** the first launch may show SmartScreen ("unrecognized app") because the build is not code-signed; choose More info, then Run anyway. Input cannot be sent to windows running as administrator unless Poltergeist is also run as administrator.
+
+**Android:** keep-awake only. The screen stays on while the app is open and in front. Moving a cursor or tapping for you needs an Accessibility Service, which is a separate Kotlin component and a sensitive permission; it is not part of this build. The Android APK is signed with a throwaway key generated per CI build, so install a fresh APK by uninstalling the old one first. To build locally you need the Android SDK and NDK:
+
+```bash
+rustup target add aarch64-linux-android
+cargo install cargo-apk2 --locked
+cargo apk2 run -p poltergeist-app --lib --target aarch64-linux-android   # phone connected over adb
+```
+
 ## Usage (CLI)
 
 ```bash
@@ -113,11 +137,11 @@ sudo systemctl enable --now poltergeist
 
 | Platform | Keep-awake | Cursor | Status |
 |---|---|---|---|
-| Linux (X11 / Wayland / console / VM) | ✅ systemd-inhibit | ✅ uinput | working |
-| Windows | planned | planned | stub |
-| macOS | planned | planned | stub (needs Accessibility permission) |
-| Android | planned | n/a | wake lock only |
-| Huawei (EMUI / AppGallery) | planned | n/a | Android build; HarmonyOS NEXT needs a port |
+| Linux (X11 / Wayland / console / VM) | ✅ systemd-inhibit | ✅ uinput | GUI + CLI, working |
+| Windows 10/11 | ✅ SetThreadExecutionState | ✅ SendInput | GUI + CLI, new in v0.3 |
+| Android 8+ | ✅ screen stays on while open | ❌ not possible | APK, new in v0.3 |
+| macOS | planned | planned | simulation only (needs Accessibility permission) |
+| Huawei (EMUI / AppGallery) | via the Android APK | ❌ | HarmonyOS NEXT needs a separate port |
 
 ## Roadmap
 
@@ -125,7 +149,10 @@ sudo systemctl enable --now poltergeist
 - [x] Desktop app, live preview, pointer overlay, auto-click at a chosen spot, test pad
 - [ ] Screenshots and screen recording (segmented, retention limits)
 - [ ] Pause when the real user is active, panic hotkey
-- [ ] Windows and macOS backends
+- [x] Windows backend and Android keep-awake app
+- [ ] macOS backend
+- [ ] Android Accessibility Service for taps (Kotlin glue)
+- [ ] Signed releases (Windows code signing, stable Android key)
 - [x] Pure-Rust settings UI (egui), installable Linux launcher
 - [ ] Tray icon, per-OS installers (Windows MSI, macOS .app, Linux RPM/AppImage)
 - [ ] Macro recorder/replayer, image-triggered actions, human-like motion

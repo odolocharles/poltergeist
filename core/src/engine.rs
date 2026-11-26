@@ -134,7 +134,8 @@ impl Engine {
                 }
             }
 
-            thread::sleep(Duration::from_millis(20));
+            // Idle (keep-awake only) ticks slowly to save battery.
+            thread::sleep(Duration::from_millis(if moves || clicks { 20 } else { 250 }));
         }
         Ok(())
     }
