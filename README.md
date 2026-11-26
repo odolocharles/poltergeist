@@ -2,7 +2,7 @@
 
 > A tiny, **fully offline**, cross-platform ghost that keeps your machine awake and moves the cursor on its own, configured exactly how you want. Written in Rust.
 
-**Status:** early development (v0.3: Linux, Windows and Android builds) · **Visibility:** private
+**Status:** early development (v0.3.1: Linux, Windows and Android builds) · **Visibility:** private
 
 ## What it does
 
@@ -71,7 +71,7 @@ One-time permission setup (so no root is needed):
 Every push builds all three apps on GitHub Actions (Actions tab, then the run, then Artifacts). Pushing a version tag publishes them as a release:
 
 ```bash
-git tag v0.3.0 && git push --tags
+git tag v0.3.1 && git push --tags
 ```
 
 | App | File | Install |

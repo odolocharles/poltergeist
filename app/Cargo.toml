@@ -44,8 +44,14 @@ label = "Poltergeist"
 icon = "@mipmap/ic_launcher"
 
 [[package.metadata.android.application.activity]]
+name = "android.app.NativeActivity"
 config_changes = "orientation|keyboardHidden|screenSize"
 launch_mode = "singleTop"
+
+# Tells NativeActivity which library to load. The value is filled in automatically
+# from the [lib] name (libpoltergeist_app.so).
+[[package.metadata.android.application.activity.meta_data]]
+name = "android.app.lib_name"
 
 [[package.metadata.android.application.activity.intent_filter]]
 actions = ["android.intent.action.MAIN"]
