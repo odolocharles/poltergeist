@@ -30,6 +30,7 @@ assets = [
   { source = "assets/poltergeist.svg", dest = "/usr/share/icons/hicolor/scalable/apps/org.sorabbyngo.Poltergeist.svg", mode = "644" },
   { source = "assets/poltergeist.png", dest = "/usr/share/icons/hicolor/256x256/apps/org.sorabbyngo.Poltergeist.png", mode = "644" },
   { source = "packaging/linux/99-poltergeist-uinput.rules", dest = "/usr/lib/udev/rules.d/99-poltergeist-uinput.rules", mode = "644" },
+  { source = "packaging/linux/poltergeist.service", dest = "/usr/lib/systemd/system/poltergeist.service", mode = "644" },
   { source = "packaging/linux/poltergeist-uinput.conf", dest = "/usr/lib/modules-load.d/poltergeist-uinput.conf", mode = "644" },
 ]
 

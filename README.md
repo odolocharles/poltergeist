@@ -1,180 +1,210 @@
 # 👻 Poltergeist
 
-> A tiny, **fully offline**, cross-platform ghost that keeps your machine awake and moves the cursor on its own, configured exactly how you want. Written in Rust.
+> A small, **fully offline** app that keeps your machine awake, moves the cursor and clicks where you tell it to. Written in Rust. Runs on Linux, Windows, macOS and Android.
 
-**Status:** early development (v0.4.0: native GTK app for Linux, plus Windows and Android) · **Visibility:** private
+**Status:** early development (v0.4.1) · **Repo:** private (`odolocharles/poltergeist`)
 
-## What it does
+## Which file do I need?
 
-1. **Keep-awake:** stops the screen and system from sleeping or locking.
-2. **Cursor automation:** random, jitter or circular movement and (soon) clicks at a chosen spot.
-3. **Capture (planned):** screenshots and screen recordings, saved automatically.
-
-Born as a test tool for virtual machines, where idle timeouts and screen blanking get in the way.
-
-## Offline by design
-
-- No network code, no telemetry, no CDN assets. Android builds will not request the `INTERNET` permission.
-- Boot actions run from a **headless service** (`poltergeist run`), never from the UI, so wake-on-boot works with no UI and no connection.
-- Config is a local JSON file, written atomically.
-- On first run the app creates its own output folders on the device:
-
-```
-<Pictures or home>/Poltergeist/
-├── screenshots/
-└── screen-recordings/
-```
-
-## Workspace layout
-
-```
-core/        config, storage paths, backend traits, shared state, action engine (no OS code)
-backends/    one module per OS behind cfg: linux (uinput + systemd-inhibit) done; others stubbed
-cli/         `poltergeist` headless binary (what boot services run)
-app-gtk/     `poltergeist-gtk` native Linux app (GTK4 + libadwaita)
-app/         `poltergeist-app` egui app, shared by Windows and Android (no webview, no network)
-assets/      app icon (PNG and SVG)
-packaging/   Linux systemd unit, uinput udev rule, desktop launcher and installer scripts
-```
-
-A separate build is released per OS. Each backend sits behind `cfg(target_os)`, so a broken backend on one OS never affects another. CI builds Linux, Windows and macOS on every push.
-
-## The app
-
-### Linux (native GTK4 + libadwaita)
-
-A real GNOME-style app: native header bar and window controls, follows your light/dark theme, F11 for full screen.
-
-**Fedora, installable package (RPM):** download `poltergeist-*.rpm` from the latest release, then:
-
-```bash
-sudo dnf install ./poltergeist-*.rpm
-```
-
-It installs the app, its menu entry and icon, and the permission rule for virtual input. Log out and in once so the desktop session picks up the rule.
-
-**From source:**
-
-```bash
-sudo dnf install gcc pkgconf-pkg-config gtk4-devel libadwaita-devel
-./packaging/linux/install-app.sh      # menu entry + icon, no root
-./packaging/linux/setup-uinput.sh     # one-time: real mouse and click control
-```
-
-Remove with `./packaging/linux/uninstall-app.sh` (or `sudo dnf remove poltergeist`).
-
-### Windows and Android (egui)
-
-`cargo run --release -p poltergeist-app`
-
-- **Every setting applies live** while it runs, and is auto-saved to the shared config file.
-- **Live preview** shows the pointer, a click target and click ripples. Click inside it to choose where auto-click lands.
-- **Pointer overlay** (optional): a see-through, click-through ring that follows the pointer across the real screen. Best on X11, Windows and macOS; compositors may restrict it on Wayland.
-- **Test pad** counts clicks the operating system actually delivers. Press "Aim auto-click at test pad", then Start, and watch the counter rise. That is the proof the clicks are real.
-- **Simulation only** mode never touches your real mouse. The app falls back to it automatically if real input is unavailable.
-
-### How clicks reach the OS
-
-On Linux the app creates a virtual absolute pointer (the same kind of device virtual machines use) through `/dev/uinput`. Events enter the kernel input stack exactly like hardware events, so X11, Wayland and the console see a normal pointer with real press and release events. Each click glides to the spot, pauses briefly, holds the button for a randomized 40-110 ms, then releases. Note that the OS can see the device exists ("Poltergeist Virtual Pointer"), as it can for any virtual input device.
-
-One-time permission setup (so no root is needed):
-
-```bash
-./packaging/linux/setup-uinput.sh
-```
-
-## Downloads and builds
-
-Every push builds all three apps on GitHub Actions (Actions tab, then the run, then Artifacts). Pushing a version tag publishes them as a release:
-
-```bash
-git tag v0.4.0 && git push --tags
-```
-
-| App | File | Install |
+| Your device | File | Section |
 |---|---|---|
-| Linux GTK app + CLI | `poltergeist-*.rpm`, `poltergeist-linux-x86_64.tar.gz` | `sudo dnf install ./poltergeist-*.rpm` |
-| Windows GUI + CLI | `poltergeist-windows-x64.zip` | unzip, run `poltergeist-app.exe` |
-| Android | `poltergeist.apk` | allow "install unknown apps" once, then open the file |
+| Fedora / RHEL-family Linux | `poltergeist-VERSION-1.x86_64.rpm` | [Linux](#linux) |
+| Other Linux | `poltergeist-linux-x86_64.tar.gz` | [Linux](#linux) |
+| Windows 10 / 11 | `poltergeist-windows-x64.zip` | [Windows](#windows) |
+| macOS 11+ (Apple silicon and Intel) | `poltergeist-macos.zip` | [macOS](#macos) |
+| Android 8+ (Huawei EMUI too) | `poltergeist.apk` | [Android](#android) |
 
-**Windows:** the first launch may show SmartScreen ("unrecognized app") because the build is not code-signed; choose More info, then Run anyway. Input cannot be sent to windows running as administrator unless Poltergeist is also run as administrator.
+## Step 1: get the file
 
-**Android:** keep-awake only. The screen stays on while the app is open and in front. Moving a cursor or tapping for you needs an Accessibility Service, which is a separate Kotlin component and a sensitive permission; it is not part of this build. The Android APK is signed with a throwaway key generated per CI build, so install a fresh APK by uninstalling the old one first. To build locally you need the Android SDK and NDK:
+The repo is private, so downloads need the GitHub CLI logged in as the repo owner (`gh auth login`, or `gh auth switch --user odolocharles`). Pick one way.
 
-```bash
-rustup target add aarch64-linux-android
-cargo install cargo-apk2 --locked
-cargo apk2 run -p poltergeist-app --lib --target aarch64-linux-android   # phone connected over adb
-```
-
-## Usage (CLI)
+**A. From a published release** (exists once a version tag such as `v0.4.1` has been pushed and its build passed):
 
 ```bash
-cargo build --release
-./target/release/poltergeist run --dry-run          # print actions, no permissions needed
-./target/release/poltergeist config                 # show config and its location
-./target/release/poltergeist init-paths             # create the output folders
-./target/release/poltergeist run --click-at 37,69 --click-every 5 --max-clicks 20
+gh release list -R odolocharles/poltergeist
+gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.rpm'
 ```
 
-Linux real mode needs `/dev/uinput` access: `sudo modprobe uinput` (custom kernels: `CONFIG_INPUT_UINPUT`).
+Change `'*.rpm'` to `'*.zip'`, `'*.apk'` or `'*.tar.gz'` for the other files. In a browser: GitHub repo, then **Releases**, then the newest release, then **Assets**.
+
+**B. Straight from a build** (works before any release exists):
+
+```bash
+gh run list -R odolocharles/poltergeist --workflow build --limit 5
+```
+
+Pick a run with a green check and copy its number. Then replace `RUN_ID` with that number (type the digits only, no brackets):
+
+```bash
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-linux   -D ~/Downloads/poltergeist
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-windows-x64 -D ~/Downloads/poltergeist
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-macos   -D ~/Downloads/poltergeist
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-android -D ~/Downloads/poltergeist
+```
+
+Run only the line for your device. The files land in `~/Downloads/poltergeist`.
+
+## Step 2: install
+
+### Linux
+
+The Linux app is native GTK4 + libadwaita (GNOME-style header bar, follows your light/dark theme, F11 for full screen).
+
+**Fedora (RPM):**
+
+```bash
+sudo dnf install ~/Downloads/poltergeist/poltergeist-*.rpm
+```
+
+Then **log out and back in once**. The package installs the app, its menu entry, the icon and a rule that lets your desktop session create virtual input devices (needed for real mouse and clicks). Open **Poltergeist** from your app menu. Remove it with `sudo dnf remove poltergeist`.
+
+**Any distro, from source** (build tools and GTK4 + libadwaita 1.4 or newer development files):
+
+```bash
+# Fedora
+sudo dnf install gcc pkgconf-pkg-config gtk4-devel libadwaita-devel
+# Debian / Ubuntu 24.04+
+sudo apt install build-essential pkg-config libgtk-4-dev libadwaita-1-dev
+
+tar xzf ~/Downloads/poltergeist/poltergeist-linux-x86_64.tar.gz -C ~/
+cd ~/poltergeist-linux-x86_64         # needs a Rust toolchain: https://rustup.rs
+./packaging/linux/install-app.sh      # builds, then adds a menu entry and icon (no root)
+./packaging/linux/setup-uinput.sh     # one time: allows real mouse and click control
+```
+
+Log out and back in once after `setup-uinput.sh`. Remove with `./packaging/linux/uninstall-app.sh`. Do not install both the RPM and the source build; remove one first.
+
+### Windows
+
+1. Right-click `poltergeist-windows-x64.zip`, choose **Extract All**, and pick a folder such as `C:\Users\YOU\Poltergeist`.
+2. Double-click `poltergeist-app.exe`.
+3. The first launch shows a blue **Windows protected your PC** box, because the build is not code-signed. Click **More info**, then **Run anyway**.
+
+To start it with Windows, press `Win + R`, type `shell:startup`, and put a shortcut to `poltergeist-app.exe` in that folder. To remove it, delete the folder.
+
+Windows will not let it send clicks to windows running **as administrator** unless Poltergeist is run as administrator too.
+
+The command-line version is `poltergeist.exe` in the same folder, for example `poltergeist.exe run --click-at 50,50 --click-every 5` in PowerShell.
+
+### macOS
+
+1. Double-click `poltergeist-macos.zip` to unzip it, then drag **Poltergeist** into your **Applications** folder.
+2. The app is not notarized, so the first launch is blocked. **Right-click** Poltergeist, choose **Open**, then **Open** again. If macOS still refuses, run this once in Terminal and try again:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Poltergeist.app
+   ```
+3. Press **Start**. macOS will ask for the **Accessibility** permission and open the settings page. In **System Settings, Privacy & Security, Accessibility**, switch Poltergeist on (or add it with the **+** button), then press **Start** again. Without this permission macOS silently ignores cursor and click events, so the app runs in simulation instead.
+
+To start it at login: **System Settings, General, Login Items**, then **+**, then choose Poltergeist. To remove it, drag it to the Bin.
+
+The app is only ad-hoc signed, so macOS may ask for the Accessibility permission again after an update. The command-line version is inside the app: `/Applications/Poltergeist.app/Contents/MacOS/poltergeist`.
+
+### Android
+
+1. Copy `poltergeist.apk` to your phone (USB, Bluetooth, a file-sharing app, or `adb install poltergeist.apk`).
+2. Open the file. When the phone asks, allow installing from that source.
+3. Open **Poltergeist** and tap **Keep screen awake**.
+
+Android keeps the screen on **only while Poltergeist is open and in front**. Moving a cursor or tapping for you is not possible on Android without a special Accessibility Service, so the phone app is keep-awake only. Huawei phones with EMUI install the same APK. HarmonyOS NEXT phones cannot run Android apps.
+
+Builds are signed with a throwaway key made for each build, so uninstall the old version before installing a newer one.
+
+## Using it
+
+- **Mode:** keep awake only, move the cursor only, or both.
+- **Cursor movement:** random, jitter or circle, with wait times, range and human-like curved paths.
+- **Auto-click:** turn it on, pick the button, then click or drag inside the **live preview** to choose the spot. Set the wait between clicks, how long each press is held, and an optional limit on the number of clicks.
+- **Live preview:** shows the pointer, the click spot and a ripple on every click.
+- **Test pad:** counts clicks the operating system really delivers. Put the click spot over the pad and watch the counter rise.
+- **Simulation only:** never touches your real mouse. The app falls back to it by itself if real input is not allowed, and says why.
+- Every change applies immediately and is saved automatically.
+
+On first run the app creates `Poltergeist/screenshots` and `Poltergeist/screen-recordings` inside your Pictures folder.
+
+### Where settings are stored
+
+| OS | File |
+|---|---|
+| Linux | `~/.config/poltergeist/config.json` |
+| macOS | `~/Library/Application Support/Poltergeist/config.json` |
+| Windows | `%APPDATA%\Poltergeist\config\config.json` |
+| Android | the app's private storage |
+
+### Command line
+
+```bash
+poltergeist run --dry-run                                # print actions, touch nothing
+poltergeist run --click-at 37,69 --click-every 5 --max-clicks 20
+poltergeist run --mode keep-awake
+poltergeist config                                       # show settings and where they live
+```
+
+`--click-at X,Y` is a position in percent of the screen. Stop with Ctrl+C.
 
 ### Run at boot (Linux)
 
+The RPM installs a service that needs no window:
+
 ```bash
-sudo install -m755 target/release/poltergeist /usr/local/bin/
-sudo install -m644 packaging/linux/poltergeist.service /etc/systemd/system/
 sudo systemctl enable --now poltergeist
 ```
 
-### Config
+It reads the same settings file as the app. For a source install, first copy the binary: `sudo install -m755 ~/.local/bin/poltergeist /usr/bin/poltergeist`, then `sudo install -m644 packaging/linux/poltergeist.service /etc/systemd/system/`.
 
-`~/.config/poltergeist/config.json` (created on first run):
+## Offline by design
 
-```json
-{
-  "mode": "both",
-  "style": "random",
-  "min_interval_s": 3.0,
-  "max_interval_s": 12.0,
-  "radius": 0.12,
-  "humanize": true,
-  "idle_key_chance": 0.3,
-  "click": { "enabled": false, "button": "left", "x": 0.5, "y": 0.5,
-             "min_interval_s": 4.0, "max_interval_s": 8.0,
-             "hold_ms_min": 40, "hold_ms_max": 110, "scatter": 0.0, "max_clicks": 0 },
-  "show_overlay": false,
-  "output_root": null
-}
-```
-
-`mode`: `keep_awake` | `cursor` | `both` · `style`: `random` | `jitter` | `circle`
+No network code, no telemetry, no web assets. The Android build does not request the `INTERNET` permission. Boot actions run from the headless service, never from the UI.
 
 ## Platform support
 
-| Platform | Keep-awake | Cursor | Status |
+| Platform | Keep-awake | Cursor and clicks | App |
 |---|---|---|---|
-| Linux (GNOME / KDE, X11 / Wayland / VM) | ✅ systemd-inhibit | ✅ uinput | native GTK4 app + CLI + RPM |
-| Windows 10/11 | ✅ SetThreadExecutionState | ✅ SendInput | GUI + CLI, new in v0.3 |
-| Android 8+ | ✅ screen stays on while open | ❌ not possible | APK, new in v0.3 |
-| macOS | planned | planned | simulation only (needs Accessibility permission) |
-| Huawei (EMUI / AppGallery) | via the Android APK | ❌ | HarmonyOS NEXT needs a separate port |
+| Linux (X11 / Wayland / VM) | systemd-inhibit | uinput virtual pointer | GTK4 app, CLI, RPM |
+| Windows 10/11 | SetThreadExecutionState | SendInput | egui app, CLI |
+| macOS 11+ | caffeinate | CoreGraphics events | egui app in a universal `.app`, CLI |
+| Android 8+ | window keep-screen-on | not possible | egui app (APK) |
+
+Known limits: Windows marks synthetic input as "injected" and cannot reach administrator windows; macOS needs the Accessibility permission; on GNOME/Wayland an app cannot learn its own window position, so the click spot is chosen in the preview.
+
+## Building from source
+
+```bash
+cargo build --release -p poltergeist-cli                 # CLI, any platform
+cargo build --release -p poltergeist-app                 # egui app (Windows, macOS, Linux)
+cargo build --release -p poltergeist-gtk                 # GTK app (Linux only)
+cargo test -p poltergeist-core
+```
+
+Android needs the Android SDK and NDK: `rustup target add aarch64-linux-android`, `cargo install cargo-apk2 --locked`, then `cargo apk2 run -p poltergeist-app --lib --target aarch64-linux-android`.
+
+## Releasing
+
+Every push builds all five files on GitHub Actions. Pushing a version tag publishes them as a release once every job is green:
+
+```bash
+git tag -a v0.4.1 -m "v0.4.1" && git push origin v0.4.1
+```
+
+## Repo layout
+
+```
+core/        config, storage paths, backend traits, shared state, action engine (no OS code)
+backends/    one module per OS: linux (uinput), windows (SendInput), macos (CoreGraphics)
+cli/         `poltergeist` headless command
+app-gtk/     `poltergeist-gtk`, the native Linux app (GTK4 + libadwaita)
+app/         `poltergeist-app`, the egui app for Windows, macOS and Android
+assets/      icons (PNG, SVG, ICO, ICNS)
+packaging/   Linux (RPM metadata, systemd, udev, launcher) and macOS (.app builder)
+```
 
 ## Roadmap
 
-- [x] Workspace, config, offline paths, Linux backend, headless CLI, CI matrix
-- [x] Desktop app, live preview, pointer overlay, auto-click at a chosen spot, test pad
-- [ ] Screenshots and screen recording (segmented, retention limits)
-- [ ] Pause when the real user is active, panic hotkey
-- [x] Native GTK4 + libadwaita app and RPM for Linux
-- [x] Windows backend and Android keep-awake app
-- [ ] macOS backend
-- [ ] Android Accessibility Service for taps (Kotlin glue)
-- [ ] Signed releases (Windows code signing, stable Android key)
-- [x] Pure-Rust settings UI (egui), installable Linux launcher
-- [ ] Tray icon, per-OS installers (Windows MSI, macOS .app, Linux RPM/AppImage)
-- [ ] Macro recorder/replayer, image-triggered actions, human-like motion
-- [ ] Android keep-awake build
+- [ ] Screenshots and screen recording (the folders already exist)
+- [ ] Tray icon, so it keeps running with the window closed
+- [ ] Android Accessibility Service for taps
+- [ ] Pause automatically when the real user is active, panic hotkey
+- [ ] Signed releases (Windows code signing, Apple notarization, stable Android key)
+- [ ] Macro recorder, image-triggered actions
 
 ## License
 
