@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.sorabbyngo.Poltergeist</id>
+  <name>Poltergeist</name>
+  <summary>Keep-awake, cursor and auto-click automation, fully offline</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>Keeps your machine awake, moves the cursor and clicks at spots you choose. Everything runs locally; there is no network access and no telemetry.</p>
+  </description>
+  <launchable type="desktop-id">org.sorabbyngo.Poltergeist.desktop</launchable>
+  <provides><binary>poltergeist-gtk</binary><binary>poltergeist</binary></provides>
+</component>

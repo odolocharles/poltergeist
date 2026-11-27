@@ -2,7 +2,7 @@
 
 > A tiny, **fully offline**, cross-platform ghost that keeps your machine awake and moves the cursor on its own, configured exactly how you want. Written in Rust.
 
-**Status:** early development (v0.3.1: Linux, Windows and Android builds) · **Visibility:** private
+**Status:** early development (v0.4.0: native GTK app for Linux, plus Windows and Android) · **Visibility:** private
 
 ## What it does
 
@@ -31,7 +31,8 @@ Born as a test tool for virtual machines, where idle timeouts and screen blankin
 core/        config, storage paths, backend traits, shared state, action engine (no OS code)
 backends/    one module per OS behind cfg: linux (uinput + systemd-inhibit) done; others stubbed
 cli/         `poltergeist` headless binary (what boot services run)
-app/         `poltergeist-app` desktop UI (pure Rust, egui: no webview, no network)
+app-gtk/     `poltergeist-gtk` native Linux app (GTK4 + libadwaita)
+app/         `poltergeist-app` egui app, shared by Windows and Android (no webview, no network)
 assets/      app icon (PNG and SVG)
 packaging/   Linux systemd unit, uinput udev rule, desktop launcher and installer scripts
 ```
@@ -40,15 +41,31 @@ A separate build is released per OS. Each backend sits behind `cfg(target_os)`, 
 
 ## The app
 
-Install it as a normal desktop app (menu entry and icon, no root needed):
+### Linux (native GTK4 + libadwaita)
+
+A real GNOME-style app: native header bar and window controls, follows your light/dark theme, F11 for full screen.
+
+**Fedora, installable package (RPM):** download `poltergeist-*.rpm` from the latest release, then:
 
 ```bash
-./packaging/linux/install-app.sh
+sudo dnf install ./poltergeist-*.rpm
 ```
 
-Or just run it: `cargo run --release -p poltergeist-app`
+It installs the app, its menu entry and icon, and the permission rule for virtual input. Log out and in once so the desktop session picks up the rule.
 
-- **Window controls:** on Linux the app draws its own title bar with minimize, maximize/restore and close, plus edge resizing. Double-click the bar to maximize or restore. **F11** toggles full screen and **Esc** always leaves it.
+**From source:**
+
+```bash
+sudo dnf install gcc pkgconf-pkg-config gtk4-devel libadwaita-devel
+./packaging/linux/install-app.sh      # menu entry + icon, no root
+./packaging/linux/setup-uinput.sh     # one-time: real mouse and click control
+```
+
+Remove with `./packaging/linux/uninstall-app.sh` (or `sudo dnf remove poltergeist`).
+
+### Windows and Android (egui)
+
+`cargo run --release -p poltergeist-app`
 
 - **Every setting applies live** while it runs, and is auto-saved to the shared config file.
 - **Live preview** shows the pointer, a click target and click ripples. Click inside it to choose where auto-click lands.
@@ -71,12 +88,12 @@ One-time permission setup (so no root is needed):
 Every push builds all three apps on GitHub Actions (Actions tab, then the run, then Artifacts). Pushing a version tag publishes them as a release:
 
 ```bash
-git tag v0.3.1 && git push --tags
+git tag v0.4.0 && git push --tags
 ```
 
 | App | File | Install |
 |---|---|---|
-| Linux GUI + CLI | `poltergeist-linux-x86_64.tar.gz` | extract, run `packaging/linux/install-app.sh` (builds from source) or use the binaries directly |
+| Linux GTK app + CLI | `poltergeist-*.rpm`, `poltergeist-linux-x86_64.tar.gz` | `sudo dnf install ./poltergeist-*.rpm` |
 | Windows GUI + CLI | `poltergeist-windows-x64.zip` | unzip, run `poltergeist-app.exe` |
 | Android | `poltergeist.apk` | allow "install unknown apps" once, then open the file |
 
@@ -137,7 +154,7 @@ sudo systemctl enable --now poltergeist
 
 | Platform | Keep-awake | Cursor | Status |
 |---|---|---|---|
-| Linux (X11 / Wayland / console / VM) | ✅ systemd-inhibit | ✅ uinput | GUI + CLI, working |
+| Linux (GNOME / KDE, X11 / Wayland / VM) | ✅ systemd-inhibit | ✅ uinput | native GTK4 app + CLI + RPM |
 | Windows 10/11 | ✅ SetThreadExecutionState | ✅ SendInput | GUI + CLI, new in v0.3 |
 | Android 8+ | ✅ screen stays on while open | ❌ not possible | APK, new in v0.3 |
 | macOS | planned | planned | simulation only (needs Accessibility permission) |
@@ -149,6 +166,7 @@ sudo systemctl enable --now poltergeist
 - [x] Desktop app, live preview, pointer overlay, auto-click at a chosen spot, test pad
 - [ ] Screenshots and screen recording (segmented, retention limits)
 - [ ] Pause when the real user is active, panic hotkey
+- [x] Native GTK4 + libadwaita app and RPM for Linux
 - [x] Windows backend and Android keep-awake app
 - [ ] macOS backend
 - [ ] Android Accessibility Service for taps (Kotlin glue)

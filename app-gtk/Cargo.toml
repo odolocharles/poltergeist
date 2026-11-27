@@ -1,0 +1,38 @@
+[package]
+name = "poltergeist-gtk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "poltergeist-gtk"
+path = "src/main.rs"
+
+[dependencies]
+poltergeist-core.workspace = true
+poltergeist-backends.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { package = "gtk4", version = "0.10" }
+adw = { package = "libadwaita", version = "0.8", features = ["v1_4"] }
+
+# Fedora/RPM package: `cargo generate-rpm -p app-gtk` after a release build.
+[package.metadata.generate-rpm]
+name = "poltergeist"
+summary = "Keep-awake, cursor and auto-click automation, fully offline"
+post_install_script = "udevadm control --reload-rules >/dev/null 2>&1 || true; udevadm trigger --subsystem-match=misc --sysname-match=uinput >/dev/null 2>&1 || true; modprobe uinput >/dev/null 2>&1 || true"
+assets = [
+  { source = "target/release/poltergeist-gtk", dest = "/usr/bin/poltergeist-gtk", mode = "755" },
+  { source = "target/release/poltergeist", dest = "/usr/bin/poltergeist", mode = "755" },
+  { source = "packaging/linux/org.sorabbyngo.Poltergeist.desktop", dest = "/usr/share/applications/org.sorabbyngo.Poltergeist.desktop", mode = "644" },
+  { source = "packaging/linux/org.sorabbyngo.Poltergeist.metainfo.xml", dest = "/usr/share/metainfo/org.sorabbyngo.Poltergeist.metainfo.xml", mode = "644" },
+  { source = "assets/poltergeist.svg", dest = "/usr/share/icons/hicolor/scalable/apps/org.sorabbyngo.Poltergeist.svg", mode = "644" },
+  { source = "assets/poltergeist.png", dest = "/usr/share/icons/hicolor/256x256/apps/org.sorabbyngo.Poltergeist.png", mode = "644" },
+  { source = "packaging/linux/99-poltergeist-uinput.rules", dest = "/usr/lib/udev/rules.d/99-poltergeist-uinput.rules", mode = "644" },
+  { source = "packaging/linux/poltergeist-uinput.conf", dest = "/usr/lib/modules-load.d/poltergeist-uinput.conf", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+gtk4 = "*"
+libadwaita = "*"

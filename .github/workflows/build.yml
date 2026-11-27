@@ -9,25 +9,36 @@ on:
 
 jobs:
   linux:
-    name: Linux (GUI + CLI)
+    name: Linux (GTK app + CLI + RPM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install GTK development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev pkg-config
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test -p poltergeist-core
-      - run: cargo build --release -p poltergeist-app -p poltergeist-cli
-      - name: Package
+      - run: cargo build --release -p poltergeist-gtk -p poltergeist-cli
+      - name: Build the RPM
+        run: |
+          cargo install cargo-generate-rpm --locked
+          cargo generate-rpm -p app-gtk
+          cp target/generate-rpm/*.rpm .
+      - name: Package tarball
         run: |
           d=poltergeist-linux-x86_64
           mkdir -p "dist/$d"
-          cp target/release/poltergeist target/release/poltergeist-app "dist/$d/"
+          cp target/release/poltergeist target/release/poltergeist-gtk "dist/$d/"
           cp -r packaging assets README.md "dist/$d/"
           tar czf "$d.tar.gz" -C dist "$d"
       - uses: actions/upload-artifact@v4
         with:
-          name: poltergeist-linux-x86_64
-          path: poltergeist-linux-x86_64.tar.gz
+          name: poltergeist-linux
+          path: |
+            poltergeist-linux-x86_64.tar.gz
+            poltergeist-*.rpm
 
   windows:
     name: Windows (GUI + CLI)

@@ -1,9 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["core", "backends", "cli", "app"]
+members = ["core", "backends", "cli", "app", "app-gtk"]
+# Plain `cargo build` skips the GTK app so it never needs GTK dev libraries;
+# build it with `-p poltergeist-gtk`.
+default-members = ["core", "backends", "cli", "app"]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 license = "LicenseRef-Proprietary"
 publish = false
