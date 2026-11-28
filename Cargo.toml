@@ -6,7 +6,7 @@ members = ["core", "backends", "cli", "app", "app-gtk"]
 default-members = ["core", "backends", "cli", "app"]
 
 [workspace.package]
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 license = "LicenseRef-Proprietary"
 publish = false

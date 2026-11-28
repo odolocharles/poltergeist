@@ -2867,7 +2867,7 @@ dependencies = [
 
 [[package]]
 name = "poltergeist-app"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "android-activity",
  "eframe",
@@ -2878,7 +2878,7 @@ dependencies = [
 
 [[package]]
 name = "poltergeist-backends"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "evdev",
  "poltergeist-core",
@@ -2886,7 +2886,7 @@ dependencies = [
 
 [[package]]
 name = "poltergeist-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
  "ctrlc",
@@ -2897,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "poltergeist-core"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "directories",
  "rand",
@@ -2908,7 +2908,7 @@ dependencies = [
 
 [[package]]
 name = "poltergeist-gtk"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "gtk4",
  "libadwaita",

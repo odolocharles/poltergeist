@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds Poltergeist.app (universal: Apple silicon + Intel) and zips it.
+# Builds Poltergeist.app (universal: Apple silicon + Intel) and a Poltergeist-VERSION.dmg disk image.
 # Run on a Mac after building both targets:
 #   cargo build --release -p poltergeist-app -p poltergeist-cli --target aarch64-apple-darwin
 #   cargo build --release -p poltergeist-app -p poltergeist-cli --target x86_64-apple-darwin
@@ -39,5 +39,9 @@ PLIST
 # Ad-hoc signature: required for the app to launch on Apple silicon. It is not an
 # Apple Developer ID, so Gatekeeper still asks the user to confirm the first launch.
 codesign --force --deep --sign - "$app"
-ditto -c -k --keepParent "$app" poltergeist-macos.zip
-echo "Built poltergeist-macos.zip"
+# Disk image: the app next to an Applications shortcut, so install is "drag across".
+stage="dist/dmg"; mkdir -p "$stage"
+cp -R "$app" "$stage/"
+ln -s /Applications "$stage/Applications"
+hdiutil create -volname "Poltergeist" -srcfolder "$stage" -ov -format UDZO "Poltergeist-${version}.dmg"
+echo "Built Poltergeist-${version}.dmg"

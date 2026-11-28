@@ -2,112 +2,91 @@
 
 > A small, **fully offline** app that keeps your machine awake, moves the cursor and clicks where you tell it to. Written in Rust. Runs on Linux, Windows, macOS and Android.
 
-**Status:** early development (v0.4.1) · **Repo:** private (`odolocharles/poltergeist`)
+**Status:** early development (v0.5.0) · **Repo:** private (`odolocharles/poltergeist`)
 
-## Which file do I need?
+## Install
 
-| Your device | File | Section |
+Every platform has **one installer file**. Find your platform below and follow only that section.
+
+| Your device | Installer | Needs |
 |---|---|---|
-| Fedora / RHEL-family Linux | `poltergeist-VERSION-1.x86_64.rpm` | [Linux](#linux) |
-| Other Linux | `poltergeist-linux-x86_64.tar.gz` | [Linux](#linux) |
-| Windows 10 / 11 | `poltergeist-windows-x64.zip` | [Windows](#windows) |
-| macOS 11+ (Apple silicon and Intel) | `poltergeist-macos.zip` | [macOS](#macos) |
-| Android 8+ (Huawei EMUI too) | `poltergeist.apk` | [Android](#android) |
+| Linux (Fedora 40+, Ubuntu 24.04+ and similar) | `poltergeist-VERSION-linux-x86_64.run` | 64-bit Intel/AMD, GTK4 + libadwaita (part of GNOME) |
+| Windows | `Poltergeist-Setup-VERSION.exe` | Windows 10 or 11, 64-bit |
+| macOS | `Poltergeist-VERSION.dmg` | macOS 11 or newer, Apple silicon or Intel |
+| Android | `poltergeist-VERSION.apk` | Android 8 or newer |
 
-## Step 1: get the file
+**Downloading.** The repo is private, so downloads need the GitHub CLI signed in as the owner (`gh auth login`, or `gh auth switch --user odolocharles`). Each platform below shows two ways to download:
 
-The repo is private, so downloads need the GitHub CLI logged in as the repo owner (`gh auth login`, or `gh auth switch --user odolocharles`). Pick one way.
+- **From a release**, which exists once a version tag such as `v0.5.0` has been pushed and its build passed.
+- **From a build**, which works before any release exists. First run `gh run list -R odolocharles/poltergeist --workflow build --limit 5`, pick a run with a green check, and replace `RUN_ID` in the command with its number (digits only, no brackets).
 
-**A. From a published release** (exists once a version tag such as `v0.4.1` has been pushed and its build passed):
-
-```bash
-gh release list -R odolocharles/poltergeist
-gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.rpm'
-```
-
-Change `'*.rpm'` to `'*.zip'`, `'*.apk'` or `'*.tar.gz'` for the other files. In a browser: GitHub repo, then **Releases**, then the newest release, then **Assets**.
-
-**B. Straight from a build** (works before any release exists):
-
-```bash
-gh run list -R odolocharles/poltergeist --workflow build --limit 5
-```
-
-Pick a run with a green check and copy its number. Then replace `RUN_ID` with that number (type the digits only, no brackets):
-
-```bash
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-linux   -D ~/Downloads/poltergeist
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-windows-x64 -D ~/Downloads/poltergeist
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-macos   -D ~/Downloads/poltergeist
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-android -D ~/Downloads/poltergeist
-```
-
-Run only the line for your device. The files land in `~/Downloads/poltergeist`.
-
-## Step 2: install
+In a browser, the same files are under the repo's **Releases** page (Assets) or a build's page under **Actions** (Artifacts, at the bottom).
 
 ### Linux
 
-The Linux app is native GTK4 + libadwaita (GNOME-style header bar, follows your light/dark theme, F11 for full screen).
-
-**Fedora (RPM):**
-
 ```bash
-sudo dnf install ~/Downloads/poltergeist/poltergeist-*.rpm
+# download (use one of the two)
+gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.run'
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-linux -D ~/Downloads
+
+# install
+chmod +x ~/Downloads/poltergeist-*-linux-x86_64.run
+~/Downloads/poltergeist-*-linux-x86_64.run
 ```
 
-Then **log out and back in once**. The package installs the app, its menu entry, the icon and a rule that lets your desktop session create virtual input devices (needed for real mouse and clicks). Open **Poltergeist** from your app menu. Remove it with `sudo dnf remove poltergeist`.
+If you have downloaded several versions, give the exact file name instead of the `*`.
 
-**Any distro, from source** (build tools and GTK4 + libadwaita 1.4 or newer development files):
+The installer needs no compiler. It puts the app in `~/.local/bin`, adds **Poltergeist** to your app menu with its icon, and asks once (with your password) whether to allow real mouse and click control. Say yes, then **log out and back in once**. If you say no, the app runs in simulation only. You can run the installer again later to change that.
 
-```bash
-# Fedora
-sudo dnf install gcc pkgconf-pkg-config gtk4-devel libadwaita-devel
-# Debian / Ubuntu 24.04+
-sudo apt install build-essential pkg-config libgtk-4-dev libadwaita-1-dev
+If GTK4 or libadwaita is missing it tells you the exact command for your distro. Open the app from your menu, or from a terminal with `poltergeist-gtk`. The command-line tool is `poltergeist`.
 
-tar xzf ~/Downloads/poltergeist/poltergeist-linux-x86_64.tar.gz -C ~/
-cd ~/poltergeist-linux-x86_64         # needs a Rust toolchain: https://rustup.rs
-./packaging/linux/install-app.sh      # builds, then adds a menu entry and icon (no root)
-./packaging/linux/setup-uinput.sh     # one time: allows real mouse and click control
-```
-
-Log out and back in once after `setup-uinput.sh`. Remove with `./packaging/linux/uninstall-app.sh`. Do not install both the RPM and the source build; remove one first.
+To remove it: `~/Downloads/poltergeist-*-linux-x86_64.run --uninstall`
 
 ### Windows
 
-1. Right-click `poltergeist-windows-x64.zip`, choose **Extract All**, and pick a folder such as `C:\Users\YOU\Poltergeist`.
-2. Double-click `poltergeist-app.exe`.
-3. The first launch shows a blue **Windows protected your PC** box, because the build is not code-signed. Click **More info**, then **Run anyway**.
+```powershell
+# download (use one of the two)
+gh release download -R odolocharles/poltergeist -D $HOME\Downloads --pattern '*.exe'
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-windows -D $HOME\Downloads
+```
 
-To start it with Windows, press `Win + R`, type `shell:startup`, and put a shortcut to `poltergeist-app.exe` in that folder. To remove it, delete the folder.
+1. Double-click `Poltergeist-Setup-VERSION.exe`.
+2. Windows shows a blue **Windows protected your PC** box, because the installer is not code-signed yet. Click **More info**, then **Run anyway**.
+3. Follow the wizard. It installs for your user only, so it does not ask for an administrator password. You can tick **Start Poltergeist when I sign in** and **Create a desktop shortcut**.
+4. Finish, and Poltergeist opens. It is also in the Start menu.
 
-Windows will not let it send clicks to windows running **as administrator** unless Poltergeist is run as administrator too.
-
-The command-line version is `poltergeist.exe` in the same folder, for example `poltergeist.exe run --click-at 50,50 --click-every 5` in PowerShell.
+Remove it from **Settings, Apps, Installed apps**. Windows will not let Poltergeist send clicks to windows running **as administrator**, unless Poltergeist is run as administrator too. The command-line tool `poltergeist.exe` is in the install folder (`%LOCALAPPDATA%\Programs\Poltergeist`).
 
 ### macOS
 
-1. Double-click `poltergeist-macos.zip` to unzip it, then drag **Poltergeist** into your **Applications** folder.
-2. The app is not notarized, so the first launch is blocked. **Right-click** Poltergeist, choose **Open**, then **Open** again. If macOS still refuses, run this once in Terminal and try again:
+```bash
+# download (use one of the two)
+gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.dmg'
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-macos -D ~/Downloads
+```
+
+1. Double-click `Poltergeist-VERSION.dmg`. A window opens with the app next to an **Applications** shortcut. Drag **Poltergeist** onto **Applications**.
+2. The app is not notarized by Apple yet, so the first launch is blocked. In **Applications**, **right-click** Poltergeist, choose **Open**, then **Open** again. If macOS still refuses, run this once in Terminal and try again:
    ```bash
    xattr -dr com.apple.quarantine /Applications/Poltergeist.app
    ```
-3. Press **Start**. macOS will ask for the **Accessibility** permission and open the settings page. In **System Settings, Privacy & Security, Accessibility**, switch Poltergeist on (or add it with the **+** button), then press **Start** again. Without this permission macOS silently ignores cursor and click events, so the app runs in simulation instead.
+3. Press **Start**. macOS asks for the **Accessibility** permission and opens the settings page. Switch Poltergeist on there (or add it with **+**), then press **Start** again. Without that permission macOS silently ignores cursor and click events, so the app runs in simulation instead.
 
-To start it at login: **System Settings, General, Login Items**, then **+**, then choose Poltergeist. To remove it, drag it to the Bin.
-
-The app is only ad-hoc signed, so macOS may ask for the Accessibility permission again after an update. The command-line version is inside the app: `/Applications/Poltergeist.app/Contents/MacOS/poltergeist`.
+To start it at login: **System Settings, General, Login Items, +**. To remove it, drag it to the Bin. The app is only ad-hoc signed, so macOS may ask for the Accessibility permission again after an update. The command-line tool is inside the app at `/Applications/Poltergeist.app/Contents/MacOS/poltergeist`.
 
 ### Android
 
-1. Copy `poltergeist.apk` to your phone (USB, Bluetooth, a file-sharing app, or `adb install poltergeist.apk`).
-2. Open the file. When the phone asks, allow installing from that source.
+```bash
+# download (use one of the two)
+gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.apk'
+gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-android -D ~/Downloads
+```
+
+1. Copy `poltergeist-VERSION.apk` to your phone (USB, Bluetooth, a file-sharing app, or `adb install poltergeist-VERSION.apk`).
+2. Open the file and, when the phone asks, allow installing from that source.
 3. Open **Poltergeist** and tap **Keep screen awake**.
 
-Android keeps the screen on **only while Poltergeist is open and in front**. Moving a cursor or tapping for you is not possible on Android without a special Accessibility Service, so the phone app is keep-awake only. Huawei phones with EMUI install the same APK. HarmonyOS NEXT phones cannot run Android apps.
-
-Builds are signed with a throwaway key made for each build, so uninstall the old version before installing a newer one.
+Android keeps the screen on **only while Poltergeist is open and in front**. Moving a cursor or tapping for you is not possible on Android without a special Accessibility Service, so the phone app is keep-awake only. Huawei phones with EMUI install the same APK. HarmonyOS NEXT phones cannot run Android apps. Builds are signed with a throwaway key made for each build, so uninstall the old version before installing a newer one.
 
 ## Using it
 
@@ -141,15 +120,29 @@ poltergeist config                                       # show settings and whe
 
 `--click-at X,Y` is a position in percent of the screen. Stop with Ctrl+C.
 
-### Run at boot (Linux)
+### Run at boot or login
 
-The RPM installs a service that needs no window:
+- **Windows:** tick the option in the installer, or put a shortcut in `shell:startup`.
+- **macOS:** System Settings, General, Login Items, +.
+- **Linux:** a background service that needs no window and starts when you sign in:
 
 ```bash
-sudo systemctl enable --now poltergeist
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/poltergeist.service << 'EOF'
+[Unit]
+Description=Poltergeist keep-awake and automation (offline)
+
+[Service]
+ExecStart=%h/.local/bin/poltergeist run
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user enable --now poltergeist
 ```
 
-It reads the same settings file as the app. For a source install, first copy the binary: `sudo install -m755 ~/.local/bin/poltergeist /usr/bin/poltergeist`, then `sudo install -m644 packaging/linux/poltergeist.service /etc/systemd/system/`.
+It reads the same settings file as the app. Stop it with `systemctl --user disable --now poltergeist`.
 
 ## Offline by design
 
@@ -159,9 +152,9 @@ No network code, no telemetry, no web assets. The Android build does not request
 
 | Platform | Keep-awake | Cursor and clicks | App |
 |---|---|---|---|
-| Linux (X11 / Wayland / VM) | systemd-inhibit | uinput virtual pointer | GTK4 app, CLI, RPM |
-| Windows 10/11 | SetThreadExecutionState | SendInput | egui app, CLI |
-| macOS 11+ | caffeinate | CoreGraphics events | egui app in a universal `.app`, CLI |
+| Linux (X11 / Wayland / VM) | systemd-inhibit | uinput virtual pointer | GTK4 app + CLI, `.run` installer |
+| Windows 10/11 | SetThreadExecutionState | SendInput | egui app + CLI, setup `.exe` |
+| macOS 11+ | caffeinate | CoreGraphics events | egui app + CLI in a universal `.app`, `.dmg` |
 | Android 8+ | window keep-screen-on | not possible | egui app (APK) |
 
 Known limits: Windows marks synthetic input as "injected" and cannot reach administrator windows; macOS needs the Accessibility permission; on GNOME/Wayland an app cannot learn its own window position, so the click spot is chosen in the preview.
@@ -172,6 +165,7 @@ Known limits: Windows marks synthetic input as "injected" and cannot reach admin
 cargo build --release -p poltergeist-cli                 # CLI, any platform
 cargo build --release -p poltergeist-app                 # egui app (Windows, macOS, Linux)
 cargo build --release -p poltergeist-gtk                 # GTK app (Linux only)
+./packaging/linux/install-app.sh                          # build and install the GTK app from source (Linux)
 cargo test -p poltergeist-core
 ```
 
@@ -179,10 +173,10 @@ Android needs the Android SDK and NDK: `rustup target add aarch64-linux-android`
 
 ## Releasing
 
-Every push builds all five files on GitHub Actions. Pushing a version tag publishes them as a release once every job is green:
+Every push builds the four installers on GitHub Actions. Pushing a version tag publishes them as a release once every job is green:
 
 ```bash
-git tag -a v0.4.1 -m "v0.4.1" && git push origin v0.4.1
+git tag -a v0.5.0 -m "v0.5.0" && git push origin v0.5.0
 ```
 
 ## Repo layout
@@ -194,7 +188,7 @@ cli/         `poltergeist` headless command
 app-gtk/     `poltergeist-gtk`, the native Linux app (GTK4 + libadwaita)
 app/         `poltergeist-app`, the egui app for Windows, macOS and Android
 assets/      icons (PNG, SVG, ICO, ICNS)
-packaging/   Linux (RPM metadata, systemd, udev, launcher) and macOS (.app builder)
+packaging/   Linux (.run installer builder, launcher, udev rule), Windows (Inno Setup script), macOS (.app and .dmg builder)
 ```
 
 ## Roadmap
