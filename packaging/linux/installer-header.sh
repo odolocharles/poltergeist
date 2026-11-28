@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Poltergeist installer for Linux. One file, no compiler needed.
 #   chmod +x poltergeist-*-linux-x86_64.run && ./poltergeist-*-linux-x86_64.run
-# Options: --uninstall   --no-input-setup   --help
+# Options: --uninstall   --no-input-setup   --version   --help
 set -euo pipefail
 
 ID=org.sorabbyngo.Poltergeist
+VERSION="__VERSION__"
 BIN="$HOME/.local/bin"
 APPS="$HOME/.local/share/applications"
 ICONS="$HOME/.local/share/icons/hicolor"
@@ -20,6 +21,7 @@ for arg in "$@"; do
       echo "Poltergeist removed. Your settings stay in ~/.config/poltergeist."
       echo "To also remove the mouse-control permission: sudo rm /etc/udev/rules.d/99-poltergeist-uinput.rules /etc/modules-load.d/poltergeist-uinput.conf"
       exit 0 ;;
+    --version) echo "Poltergeist installer $VERSION"; exit 0 ;;
     -h|--help)
       sed -n '2,4p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg (try --help)" >&2; exit 2 ;;
@@ -58,7 +60,7 @@ sed "s|^Exec=.*|Exec=$BIN/poltergeist-gtk|" "$tmp/share/$ID.desktop" > "$APPS/$I
 update-desktop-database "$APPS" 2>/dev/null || true
 gtk-update-icon-cache -f "$ICONS" 2>/dev/null || true
 
-echo "Installed Poltergeist."
+echo "Installed Poltergeist $VERSION."
 if [ -n "$WARN_LIBS" ]; then
   echo "Warning: the app window needs these libraries, which were not found:$WARN_LIBS"
   echo "  Fedora:        sudo dnf install gtk4 libadwaita"

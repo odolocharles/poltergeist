@@ -26,7 +26,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: poltergeist-linux
-          path: poltergeist-*-linux-x86_64.run
+          path: poltergeist-linux-x86_64.run
 
   windows:
     name: Windows (setup .exe)
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: poltergeist-windows
-          path: dist/Poltergeist-Setup-*.exe
+          path: dist/Poltergeist-Setup.exe
 
   macos:
     name: macOS (.dmg)
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: poltergeist-macos
-          path: Poltergeist-*.dmg
+          path: Poltergeist.dmg
 
   android:
     name: Android (APK)
@@ -92,14 +92,10 @@ jobs:
           CARGO_APK_RELEASE_KEYSTORE: ${{ runner.temp }}/poltergeist.keystore
           CARGO_APK_RELEASE_KEYSTORE_PASSWORD: android
         run: cargo apk2 build --release -p poltergeist-app --lib --target aarch64-linux-android
-      - name: Name the APK with its version
-        run: |
-          v=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
-          cp target/release/apk/poltergeist.apk "poltergeist-$v.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: poltergeist-android
-          path: poltergeist-*.apk
+          path: target/release/apk/poltergeist.apk
 
   release:
     name: Publish release
@@ -117,3 +113,6 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+          # Optional: publish to a separate public repo (see DEVELOPING.md).
+          repository: ${{ vars.RELEASE_REPO || github.repository }}
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}

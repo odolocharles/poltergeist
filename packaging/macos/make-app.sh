@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds Poltergeist.app (universal: Apple silicon + Intel) and a Poltergeist-VERSION.dmg disk image.
+# Builds Poltergeist.app (universal: Apple silicon + Intel) and a Poltergeist.dmg disk image.
 # Run on a Mac after building both targets:
 #   cargo build --release -p poltergeist-app -p poltergeist-cli --target aarch64-apple-darwin
 #   cargo build --release -p poltergeist-app -p poltergeist-cli --target x86_64-apple-darwin
@@ -43,5 +43,5 @@ codesign --force --deep --sign - "$app"
 stage="dist/dmg"; mkdir -p "$stage"
 cp -R "$app" "$stage/"
 ln -s /Applications "$stage/Applications"
-hdiutil create -volname "Poltergeist" -srcfolder "$stage" -ov -format UDZO "Poltergeist-${version}.dmg"
-echo "Built Poltergeist-${version}.dmg"
+hdiutil create -volname "Poltergeist" -srcfolder "$stage" -ov -format UDZO "Poltergeist.dmg"
+echo "Built Poltergeist.dmg"
