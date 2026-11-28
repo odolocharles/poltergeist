@@ -2,71 +2,80 @@
 
 > A small, **fully offline** app that keeps your machine awake, moves the cursor and clicks where you tell it to. Written in Rust. Runs on Linux, Windows, macOS and Android.
 
-**Status:** early development (v0.5.0) · **Repo:** private (`odolocharles/poltergeist`)
+**Status:** early development (v0.5.1) · **Repo:** private (`odolocharles/poltergeist`)
 
 ## Install
 
-Every platform has **one installer file**. Find your platform below and follow only that section.
+Each platform has **one installer**. Find your platform and copy **only that one block**. Every block is complete on its own and has nothing to edit.
 
 | Your device | Installer | Needs |
 |---|---|---|
-| Linux (Fedora 40+, Ubuntu 24.04+ and similar) | `poltergeist-VERSION-linux-x86_64.run` | 64-bit Intel/AMD, GTK4 + libadwaita (part of GNOME) |
+| Linux | `poltergeist-VERSION-linux-x86_64.run` | 64-bit Intel/AMD, Fedora 40+ / Ubuntu 24.04+ or similar, GTK4 + libadwaita (part of GNOME) |
 | Windows | `Poltergeist-Setup-VERSION.exe` | Windows 10 or 11, 64-bit |
 | macOS | `Poltergeist-VERSION.dmg` | macOS 11 or newer, Apple silicon or Intel |
 | Android | `poltergeist-VERSION.apk` | Android 8 or newer |
 
-**Downloading.** The repo is private, so downloads need the GitHub CLI signed in as the owner (`gh auth login`, or `gh auth switch --user odolocharles`). Each platform below shows two ways to download:
+### Before you start (once)
 
-- **From a release**, which exists once a version tag such as `v0.5.0` has been pushed and its build passed.
-- **From a build**, which works before any release exists. First run `gh run list -R odolocharles/poltergeist --workflow build --limit 5`, pick a run with a green check, and replace `RUN_ID` in the command with its number (digits only, no brackets).
+The repo is private, so downloads use the GitHub CLI. Check that the **owner** account is the active one:
 
-In a browser, the same files are under the repo's **Releases** page (Assets) or a build's page under **Actions** (Artifacts, at the bottom).
+```bash
+gh auth status
+```
+
+If it says `odolocharles` is not active, run `gh auth switch --user odolocharles`. If you are not logged in at all, run `gh auth login`.
+
+The commands below download the **latest release**. A release exists once a version tag such as `v0.5.1` has been pushed and its build passed. No release yet? See [No release yet](#no-release-yet-use-the-latest-build).
 
 ### Linux
 
 ```bash
-# download (use one of the two)
-gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.run'
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-linux -D ~/Downloads
-
-# install
-chmod +x ~/Downloads/poltergeist-*-linux-x86_64.run
-~/Downloads/poltergeist-*-linux-x86_64.run
+(
+  d="$(mktemp -d)" && cd "$d" &&
+  gh release download -R odolocharles/poltergeist --pattern '*.run' &&
+  chmod +x ./*.run &&
+  ./*.run
+)
 ```
 
-If you have downloaded several versions, give the exact file name instead of the `*`.
+That downloads into a fresh temporary folder, so older downloads can never get in the way, and starts the installer. It needs no compiler. It puts the app in `~/.local/bin`, adds **Poltergeist** to your app menu, and asks once (with your password) whether to allow real mouse and click control. Answer **Y**, then **log out and back in once**. If you answer no, the app runs in simulation only; run the installer again later to change that.
 
-The installer needs no compiler. It puts the app in `~/.local/bin`, adds **Poltergeist** to your app menu with its icon, and asks once (with your password) whether to allow real mouse and click control. Say yes, then **log out and back in once**. If you say no, the app runs in simulation only. You can run the installer again later to change that.
+If GTK4 or libadwaita is missing, it prints the exact command for your distro. Open the app from your menu, or run `poltergeist-gtk`. The command-line tool is `poltergeist`.
 
-If GTK4 or libadwaita is missing it tells you the exact command for your distro. Open the app from your menu, or from a terminal with `poltergeist-gtk`. The command-line tool is `poltergeist`.
-
-To remove it: `~/Downloads/poltergeist-*-linux-x86_64.run --uninstall`
+To remove it, run the same installer with `--uninstall` (download it again with the block above, but end with `./*.run --uninstall`), or delete these by hand: `~/.local/bin/poltergeist*` and `~/.local/share/applications/org.sorabbyngo.Poltergeist.desktop`.
 
 ### Windows
 
+Open **PowerShell** and paste:
+
 ```powershell
-# download (use one of the two)
-gh release download -R odolocharles/poltergeist -D $HOME\Downloads --pattern '*.exe'
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-windows -D $HOME\Downloads
+$d = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "poltergeist-install") -Force
+gh release download -R odolocharles/poltergeist --pattern '*.exe' -D $d.FullName --clobber
+Start-Process (Get-ChildItem $d.FullName -Filter 'Poltergeist-Setup-*.exe' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
 ```
 
-1. Double-click `Poltergeist-Setup-VERSION.exe`.
-2. Windows shows a blue **Windows protected your PC** box, because the installer is not code-signed yet. Click **More info**, then **Run anyway**.
-3. Follow the wizard. It installs for your user only, so it does not ask for an administrator password. You can tick **Start Poltergeist when I sign in** and **Create a desktop shortcut**.
-4. Finish, and Poltergeist opens. It is also in the Start menu.
+The setup wizard opens.
 
-Remove it from **Settings, Apps, Installed apps**. Windows will not let Poltergeist send clicks to windows running **as administrator**, unless Poltergeist is run as administrator too. The command-line tool `poltergeist.exe` is in the install folder (`%LOCALAPPDATA%\Programs\Poltergeist`).
+1. Windows may show a blue **Windows protected your PC** box, because the installer is not code-signed yet. Click **More info**, then **Run anyway**.
+2. Follow the wizard. It installs for your user only, so it does not ask for an administrator password. You can tick **Start Poltergeist when I sign in** and **Create a desktop shortcut**.
+3. Finish, and Poltergeist opens. It is also in the Start menu.
+
+Remove it from **Settings, Apps, Installed apps**. Windows will not let Poltergeist send clicks to windows running **as administrator**, unless Poltergeist is run as administrator too. The command-line tool `poltergeist.exe` is in `%LOCALAPPDATA%\Programs\Poltergeist`.
 
 ### macOS
 
+Open **Terminal** and paste:
+
 ```bash
-# download (use one of the two)
-gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.dmg'
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-macos -D ~/Downloads
+(
+  d="$(mktemp -d)" && cd "$d" &&
+  gh release download -R odolocharles/poltergeist --pattern '*.dmg' &&
+  open ./*.dmg
+)
 ```
 
-1. Double-click `Poltergeist-VERSION.dmg`. A window opens with the app next to an **Applications** shortcut. Drag **Poltergeist** onto **Applications**.
-2. The app is not notarized by Apple yet, so the first launch is blocked. In **Applications**, **right-click** Poltergeist, choose **Open**, then **Open** again. If macOS still refuses, run this once in Terminal and try again:
+1. A window opens with the app next to an **Applications** shortcut. Drag **Poltergeist** onto **Applications**.
+2. The app is not notarized by Apple yet, so the first launch is blocked. In **Applications**, **right-click** Poltergeist, choose **Open**, then **Open** again. If macOS still refuses, run this once and try again:
    ```bash
    xattr -dr com.apple.quarantine /Applications/Poltergeist.app
    ```
@@ -76,17 +85,52 @@ To start it at login: **System Settings, General, Login Items, +**. To remove it
 
 ### Android
 
+On the computer, download the file:
+
 ```bash
-# download (use one of the two)
-gh release download -R odolocharles/poltergeist -D ~/Downloads --pattern '*.apk'
-gh run download RUN_ID -R odolocharles/poltergeist -n poltergeist-android -D ~/Downloads
+gh release download -R odolocharles/poltergeist --pattern '*.apk' -D ~/Downloads --clobber
 ```
 
-1. Copy `poltergeist-VERSION.apk` to your phone (USB, Bluetooth, a file-sharing app, or `adb install poltergeist-VERSION.apk`).
-2. Open the file and, when the phone asks, allow installing from that source.
-3. Open **Poltergeist** and tap **Keep screen awake**.
+Then copy `~/Downloads/poltergeist-VERSION.apk` to your phone (USB, Bluetooth, or a file-sharing app) and open it. When the phone asks, allow installing from that source. Open **Poltergeist** and tap **Keep screen awake**.
 
-Android keeps the screen on **only while Poltergeist is open and in front**. Moving a cursor or tapping for you is not possible on Android without a special Accessibility Service, so the phone app is keep-awake only. Huawei phones with EMUI install the same APK. HarmonyOS NEXT phones cannot run Android apps. Builds are signed with a throwaway key made for each build, so uninstall the old version before installing a newer one.
+With a phone connected over `adb` you can install in one step. Builds are signed with a throwaway key made for each build, so remove the old version first:
+
+```bash
+adb uninstall org.sorabbyngo.poltergeist ; adb install ~/Downloads/poltergeist-*.apk
+```
+
+Android keeps the screen on **only while Poltergeist is open and in front**. Moving a cursor or tapping for you is not possible on Android without a special Accessibility Service, so the phone app is keep-awake only. Huawei phones with EMUI install the same APK. HarmonyOS NEXT phones cannot run Android apps.
+
+### No release yet? Use the latest build
+
+Every push builds the installers, so you can fetch the newest successful build instead. Do the same as above but replace the download line as follows. First find the newest successful build (this works in Terminal and PowerShell; in PowerShell write `$RUN = ...`):
+
+```bash
+RUN="$(gh run list -R odolocharles/poltergeist --workflow build --status success --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+Then, instead of `gh release download -R odolocharles/poltergeist --pattern '...'`, use the line for your platform (in PowerShell add `-D $d.FullName` and use `$RUN`):
+
+| Platform | Download line |
+|---|---|
+| Linux | `gh run download "$RUN" -R odolocharles/poltergeist -n poltergeist-linux` |
+| Windows | `gh run download $RUN -R odolocharles/poltergeist -n poltergeist-windows -D $d.FullName` |
+| macOS | `gh run download "$RUN" -R odolocharles/poltergeist -n poltergeist-macos` |
+| Android | `gh run download "$RUN" -R odolocharles/poltergeist -n poltergeist-android -D ~/Downloads` |
+
+For example, the complete Linux block becomes:
+
+```bash
+RUN="$(gh run list -R odolocharles/poltergeist --workflow build --status success --limit 1 --json databaseId -q '.[0].databaseId')"
+(
+  d="$(mktemp -d)" && cd "$d" &&
+  gh run download "$RUN" -R odolocharles/poltergeist -n poltergeist-linux &&
+  chmod +x ./*.run &&
+  ./*.run
+)
+```
+
+In a browser, the same files are on a build's page under **Actions** (Artifacts, at the bottom) or on the repo's **Releases** page (Assets).
 
 ## Using it
 
@@ -176,7 +220,7 @@ Android needs the Android SDK and NDK: `rustup target add aarch64-linux-android`
 Every push builds the four installers on GitHub Actions. Pushing a version tag publishes them as a release once every job is green:
 
 ```bash
-git tag -a v0.5.0 -m "v0.5.0" && git push origin v0.5.0
+git tag -a v0.5.1 -m "v0.5.1" && git push origin v0.5.1
 ```
 
 ## Repo layout
